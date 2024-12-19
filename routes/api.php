@@ -6,47 +6,36 @@ use App\Http\Controllers\FoodController;
 use App\Http\Controllers\ShoppingCartController;
 use App\Http\Controllers\CategoryController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+// Public Routes (tanpa autentikasi)
+Route::get('/foods', [FoodController::class, 'index']);
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{id}/foods', [CategoryController::class, 'getFoodsByCategory']);
+Route::get('/foods/{id}', [FoodController::class, 'show']);
 
 // Auth Routes
 Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('logout', [AuthController::class, 'logout']);
-    Route::post('refresh', [AuthController::class, 'refresh']);
-    Route::post('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+    Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api');
+    Route::post('me', [AuthController::class, 'me'])->middleware('auth:api');
 });
 
-// Food Routes
-Route::prefix('foods')->group(function () {
-    Route::get('/', [FoodController::class, 'index']); // Menampilkan semua makanan
-    Route::post('/', [FoodController::class, 'store']); // Menambahkan makanan baru
-    Route::get('/{id}', [FoodController::class, 'show']); // Menampilkan detail makanan berdasarkan ID
-    Route::put('/{id}', [FoodController::class, 'update']); // Memperbarui makanan berdasarkan ID
-    Route::delete('/{id}', [FoodController::class, 'destroy']); // Menghapus makanan berdasarkan ID
-});
+// Protected Routes (memerlukan autentikasi)
+Route::group(['middleware' => 'auth:api'], function () {
+    // Food Routes
+    Route::post('/foods', [FoodController::class, 'store']);
+    Route::put('/foods/{id}', [FoodController::class, 'update']);
+    Route::delete('/foods/{id}', [FoodController::class, 'destroy']);
 
-Route::prefix('cart')->group(function () {
-    Route::get('/', [ShoppingCartController::class, 'index']); // Menampilkan semua item di cart
-    Route::post('/', [ShoppingCartController::class, 'store']); // Menambahkan item ke cart
-    Route::put('/{id}', [ShoppingCartController::class, 'update']); // Memperbarui item di cart
-    Route::delete('/{id}', [ShoppingCartController::class, 'destroy']); // Menghapus item dari cart
-});
+    // Category Routes
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
-Route::prefix('categories')->group(function () {
-    Route::get('/', [CategoryController::class, 'index']);
-    Route::post('/', [CategoryController::class, 'store']);
-    Route::get('/{id}', [CategoryController::class, 'show']);
-    Route::put('/{id}', [CategoryController::class, 'update']);
-    Route::delete('/{id}', [CategoryController::class, 'destroy']);
-    Route::get('/{id}/foods', [CategoryController::class, 'getFoodsByCategory']);
+    // Shopping Cart Routes
+    Route::get('/cart', [ShoppingCartController::class, 'index']);
+    Route::post('/cart', [ShoppingCartController::class, 'store']);
+    Route::put('/cart/{id}', [ShoppingCartController::class, 'update']);
+    Route::delete('/cart/{id}', [ShoppingCartController::class, 'destroy']);
 });

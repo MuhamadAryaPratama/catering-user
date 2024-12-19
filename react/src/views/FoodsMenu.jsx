@@ -25,15 +25,30 @@ function FoodsMenu() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [foodsResponse, cartResponse] = await Promise.all([
-          axiosClient.get("/foods"),
-          axiosClient.get("/cart"),
-        ]);
+        const token = localStorage.getItem("access_token");
 
+        // Fetch foods always
+        const foodsResponse = await axiosClient.get("/foods");
         setFoods(foodsResponse.data.data);
-        setCartItems(cartResponse.data.data); // Simpan data keranjang
-        updateCartCount(cartResponse.data.data);
-        // eslint-disable-next-line no-unused-vars
+
+        // Only attempt to fetch cart if token exists
+        if (token) {
+          try {
+            const cartResponse = await axiosClient.get("/cart");
+            setCartItems(cartResponse.data.data);
+            updateCartCount(cartResponse.data.data);
+          } catch (cartError) {
+            // If cart fetch fails, just log it and set cart to empty
+            console.error("Failed to fetch cart:", cartError);
+            setCartItems([]);
+            setCartCount(0);
+          }
+        } else {
+          // No token, so reset cart items
+          setCartItems([]);
+          setCartCount(0);
+        }
+      // eslint-disable-next-line no-unused-vars
       } catch (error) {
         Swal.fire({
           title: "Error",
@@ -58,7 +73,7 @@ function FoodsMenu() {
   };
 
   const addToCart = async (product) => {
-    const token = localStorage.getItem("access_token"); // Check if the access token exists
+    const token = localStorage.getItem("access_token");
 
     if (!token) {
       Swal.fire({
@@ -67,7 +82,7 @@ function FoodsMenu() {
         icon: "warning",
         confirmButtonText: "OK",
       }).then(() => {
-        navigate("/"); // Redirect to home page if not logged in
+        navigate("/login");
       });
       return;
     }
@@ -104,7 +119,7 @@ function FoodsMenu() {
         icon: "success",
         confirmButtonText: "OK",
       });
-      // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       Swal.fire({
         title: "Error",
@@ -125,10 +140,10 @@ function FoodsMenu() {
         icon: "warning",
         confirmButtonText: "OK",
       }).then(() => {
-        navigate("/login"); // Redirect ke halaman login jika belum login
+        navigate("/login");
       });
     } else {
-      navigate("/order-form"); // Redirect ke halaman order form jika sudah login
+      navigate("/order-form");
     }
   };
 

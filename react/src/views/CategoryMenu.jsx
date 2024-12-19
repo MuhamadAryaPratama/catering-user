@@ -22,6 +22,12 @@ function CategoryMenu() {
 
     // Fetch cart count
     const fetchCartCount = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.log("No token found, user not logged in.");
+        return; // Exit if no token
+      }
+
       try {
         const response = await axiosClient.get("/cart");
         const totalCount = response.data.data.reduce(
@@ -31,6 +37,11 @@ function CategoryMenu() {
         setCartCount(totalCount);
       } catch (error) {
         console.error("Failed to fetch cart count:", error);
+        // Handle token expiration or invalid token error
+        if (error.response && error.response.status === 401) {
+          console.log("Token may be expired or invalid.");
+          // Optionally, redirect to login or refresh token here
+        }
       }
     };
 

@@ -114,23 +114,12 @@ function Navbar({ cartCount = 0 }) {
                     aria-expanded={isDropdownOpen}
                   >
                     <span className="mr-2">{user.name}</span>
-                    <img
-                      src="/assets/profile-placeholder.png"
-                      alt="Profile"
-                      className="h-8 w-8 rounded-full"
-                    />
                   </button>
                   {isDropdownOpen && (
                     <div
                       className="absolute top-full right-0 mt-2 bg-white shadow-lg rounded-lg py-2 w-48 z-50"
                       style={{ minWidth: "12rem" }}
                     >
-                      <Link
-                        to="/dashboard"
-                        className="block px-4 py-2 text-gray-800 text-sm font-semibold hover:bg-gray-100"
-                      >
-                        Dashboard
-                      </Link>
                       <Link
                         to="/profile"
                         className="block px-4 py-2 text-gray-800 text-sm font-semibold hover:bg-gray-100"
@@ -201,12 +190,29 @@ function Navbar({ cartCount = 0 }) {
             >
               About
             </Link>
-            <Link
-              to="/login"
-              className="text-gray-800 text-sm font-semibold hover:text-purple-600 py-2"
-            >
-              Sign in
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="text-gray-800 text-sm font-semibold hover:text-purple-600 py-2"
+                >
+                  Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-800 text-sm font-semibold hover:text-purple-600 py-2"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="text-gray-800 text-sm font-semibold hover:text-purple-600 py-2"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       )}
