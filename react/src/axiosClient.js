@@ -9,7 +9,20 @@ const axiosClient = axios.create({
   timeout: 5000, // 5 seconds timeout
 });
 
+// Add auth token to requests if it exists
 axiosClient.interceptors.request.use((config) => {
+  // Don't add auth token for authentication-related endpoints
+  const publicEndpoints = [
+    "/auth/login",
+    "/auth/register",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+  ];
+
+  if (publicEndpoints.some((endpoint) => config.url.includes(endpoint))) {
+    return config;
+  }
+
   const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -31,6 +44,20 @@ axiosClient.interceptors.response.use(
     // Handle token expiration
     if (error.response?.status === 401 && !originalRequest._retry) {
       const token = localStorage.getItem("access_token");
+
+      // Skip token refresh for authentication-related endpoints
+      const authEndpoints = [
+        "/auth/login",
+        "/auth/register",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+      ];
+
+      if (
+        authEndpoints.some((endpoint) => originalRequest.url.includes(endpoint))
+      ) {
+        return Promise.reject(error);
+      }
 
       // Check if this is truly a token expiration or first-time authentication issue
       if (token) {
@@ -55,7 +82,7 @@ axiosClient.interceptors.response.use(
           // Only redirect to login if refresh token is invalid
           if (refreshError.response?.status === 401) {
             localStorage.removeItem("access_token");
-            window.location.href = "/";
+            window.location.href = "/login";
           }
           return Promise.reject(refreshError);
         }

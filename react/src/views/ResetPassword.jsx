@@ -1,32 +1,79 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosClient from "../axiosClient";
 import Logo from "../assets/logo.png";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+function ResetPassword() {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    password_confirmation: "",
+  });
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  useEffect(() => {
+    // Get email from sessionStorage
+    const email = sessionStorage.getItem("resetPasswordEmail");
+    if (!email) {
+      navigate("/forgot-password");
+      return;
+    }
+    setFormData((prev) => ({ ...prev, email }));
+  }, [navigate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const validatePasswords = () => {
+    if (formData.password.length < 8) {
+      setError("Password harus minimal 8 karakter");
+      return false;
+    }
+    if (formData.password !== formData.password_confirmation) {
+      setError("Password dan konfirmasi password tidak cocok");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError("");
+    setSuccessMessage("");
     setIsLoading(true);
 
+    if (!validatePasswords()) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await axiosClient.post("/auth/login", {
-        email,
-        password,
+      const response = await axiosClient.post("/auth/reset-password", {
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.password_confirmation,
       });
 
-      const { access_token } = response.data;
-      localStorage.setItem("access_token", access_token);
-      navigate("/");
+      if (response.data.status === "success") {
+        setSuccessMessage("Password berhasil diubah!");
+        // Clear email from sessionStorage
+        sessionStorage.removeItem("resetPasswordEmail");
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      }
     } catch (err) {
       setError(
-        err.response?.data?.error || "Login gagal. Cek kembali kredensial Anda."
+        err.response?.data?.message || "Terjadi kesalahan. Silakan coba lagi."
       );
     } finally {
       setIsLoading(false);
@@ -37,7 +84,7 @@ export default function Login() {
     <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
       <div className="absolute top-4 left-4">
         <Link
-          to="/"
+          to="/login"
           className="text-indigo-600 hover:text-indigo-500 flex items-center"
         >
           <svg
@@ -54,49 +101,42 @@ export default function Login() {
               d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
             />
           </svg>
-          <span className="text-sm font-semibold">Back to Dashboard</span>
+          <span className="text-sm font-semibold">Kembali ke Login</span>
         </Link>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <img alt="Your Company" src={Logo} className="mx-auto h-30 w-28" />
         <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-gray-900">
-          Sign in to your account
+          Set Password Baru
         </h2>
+        {formData.email && (
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Untuk email: {formData.email}
+          </p>
+        )}
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="text-red-500 text-sm text-center">{error}</div>
           )}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-900"
-            >
-              Email address
-            </label>
-            <div className="mt-2">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
-              />
+          {successMessage && (
+            <div className="text-green-500 text-sm text-center">
+              {successMessage}
+              <p className="mt-2 text-xs">
+                Anda akan dialihkan ke halaman login dalam beberapa detik...
+              </p>
             </div>
-          </div>
+          )}
 
           <div>
             <label
               htmlFor="password"
               className="block text-sm font-medium text-gray-900"
             >
-              Password
+              Password Baru
             </label>
             <div className="mt-2">
               <input
@@ -104,21 +144,33 @@ export default function Login() {
                 name="password"
                 type="password"
                 required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={handleChange}
+                disabled={isLoading}
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
               />
             </div>
           </div>
 
-          <div className="flex items-center">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-indigo-600 hover:text-indigo-500"
+          <div>
+            <label
+              htmlFor="password_confirmation"
+              className="block text-sm font-medium text-gray-900"
             >
-              Lupa Password?
-            </Link>
+              Konfirmasi Password
+            </label>
+            <div className="mt-2">
+              <input
+                id="password_confirmation"
+                name="password_confirmation"
+                type="password"
+                required
+                value={formData.password_confirmation}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+              />
+            </div>
           </div>
 
           <div>
@@ -131,21 +183,13 @@ export default function Login() {
                   : "bg-indigo-600 hover:bg-indigo-500"
               }`}
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Memproses..." : "Update Password"}
             </button>
           </div>
         </form>
-
-        <p className="mt-10 text-center text-sm text-gray-500">
-          Belum Mempunyai Akun?{" "}
-          <Link
-            to="/signup"
-            className="font-semibold text-indigo-600 hover:text-indigo-500"
-          >
-            Register Sekarang
-          </Link>
-        </p>
       </div>
     </div>
   );
 }
+
+export default ResetPassword;

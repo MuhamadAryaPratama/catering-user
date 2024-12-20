@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Facades\JWTAuth; // Import JWTAuth untuk refresh token
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -18,7 +18,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'forgotPassword', 'resetPassword']]);
     }
 
     /**
@@ -28,11 +28,10 @@ class AuthController extends Controller
      */
     public function register()
     {
-        // Pastikan untuk menggunakan Validator dengan benar
         $validator = Validator::make(request()->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed', // Pastikan 'confirmed' ada
+            'password' => 'required|string|min:8|confirmed',
         ]);
         
         if ($validator->fails()) {
@@ -42,7 +41,6 @@ class AuthController extends Controller
             ], 400);
         }        
 
-        // Menyimpan pengguna baru
         $user = User::create([
             'name' => request('name'),
             'email' => request('email'),
@@ -50,7 +48,6 @@ class AuthController extends Controller
         ]);
 
         if ($user) {
-            // Menggunakan status code 201 Created untuk keberhasilan pendaftaran
             return response()->json([
                 'status' => 'success',
                 'message' => 'Pendaftaran Berhasil'
@@ -59,7 +56,90 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Pendaftaran gagal'
-            ], 500); // Menggunakan status code 500 untuk kegagalan server
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle forgot password request
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function forgotPassword()
+    {
+        $validator = Validator::make(request()->all(), [
+            'email' => 'required|email'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
+        }
+
+        $email = request('email');
+        
+        // Check if user exists
+        $user = User::where('email', $email)->first();
+        
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Email terdaftar. Silakan lanjutkan ke halaman reset password.'
+        ], 200);
+    }
+
+    /**
+     * Handle reset password request
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resetPassword()
+    {
+        $validator = Validator::make(request()->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
+        }
+
+        try {
+            $user = User::where('email', request('email'))->first();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Email tidak ditemukan.'
+                ], 404);
+            }
+
+            // Update password
+            $user->password = Hash::make(request('password'));
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Password berhasil diubah!'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat mengubah password: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -73,17 +153,16 @@ class AuthController extends Controller
         $credentials = request(['email', 'password']);
 
         if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Password anda salah'], 401);
         }
 
-        // Menyertakan pesan login berhasil dan token
         return response()->json([
             'status' => 'success',
             'message' => 'Login Berhasil',
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60 // Mengambil TTL dari konfigurasi JWT
-        ], 200); // Menggunakan status code 200 untuk login yang berhasil
+            'expires_in' => config('jwt.ttl') * 60
+        ], 200);
     }
 
     /**
@@ -115,7 +194,7 @@ class AuthController extends Controller
      */
     public function refresh()
     {
-        $newToken = JWTAuth::refresh(); // Menggunakan JWTAuth::refresh untuk me-refresh token
+        $newToken = JWTAuth::refresh();
         return $this->respondWithToken($newToken);
     }
 
@@ -128,13 +207,57 @@ class AuthController extends Controller
      */
     protected function respondWithToken($token)
     {
-        // Mengambil TTL dari konfigurasi JWT
-        $expiresIn = config('jwt.ttl') * 60; // Pengaturan TTL di file config/jwt.php
+        $expiresIn = config('jwt.ttl') * 60;
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $expiresIn
         ]);
+    }
+
+    /**
+     * Change user password
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function changePassword()
+    {
+        $validator = Validator::make(request()->all(), [
+            'password' => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required|string|min:8',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
+        }
+
+        try {
+            $user = auth()->user();
+
+            $updated = User::where('id', $user->id)->update([
+                'password' => Hash::make(request('password')),
+            ]);
+
+            if ($updated) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Password berhasil diubah',
+                ], 200);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengubah password',
+            ], 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

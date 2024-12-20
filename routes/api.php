@@ -16,9 +16,12 @@ Route::get('/foods/{id}', [FoodController::class, 'show']);
 Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('reset-password', [AuthController::class, 'resetPassword']);
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
     Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api');
     Route::post('me', [AuthController::class, 'me'])->middleware('auth:api');
+    Route::post('change', [AuthController::class, 'changePassword'])->middleware('auth:api');
 });
 
 // Protected Routes (memerlukan autentikasi)

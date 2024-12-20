@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosClient from "../axiosClient";
+import Logo from "../assets/logo.png";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -98,12 +99,8 @@ export default function Signup() {
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <img
-          alt="Your Company"
-          src="https://tailwindui.com/plus/img/logos/mark.svg?color=indigo&shade=600"
-          className="mx-auto h-10 w-auto"
-        />
-        <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900">
+        <img alt="Your Company" src={Logo} className="mx-auto h-30 w-28" />
+        <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-gray-900">
           Sign up your account
         </h2>
       </div>
