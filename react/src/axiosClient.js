@@ -6,7 +6,7 @@ const axiosClient = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 5000, // 5 seconds timeout
+  timeout: 7000,
 });
 
 // Add auth token to requests if it exists
@@ -59,7 +59,7 @@ axiosClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // Check if this is truly a token expiration or first-time authentication issue
+      // Only attempt refresh if there's an existing token
       if (token) {
         try {
           originalRequest._retry = true;
@@ -79,11 +79,9 @@ axiosClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return axiosClient(originalRequest);
         } catch (refreshError) {
-          // Only redirect to login if refresh token is invalid
-          if (refreshError.response?.status === 401) {
-            localStorage.removeItem("access_token");
-            window.location.href = "/login";
-          }
+          // Only remove token if refresh attempt fails
+          localStorage.removeItem("access_token");
+          // Don't redirect, just reject the promise
           return Promise.reject(refreshError);
         }
       }

@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import axiosClient from "../axiosClient";
-import Navbar from "./Navbar";
-import Footer from "./Footer";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import { useNavigate } from "react-router-dom";
 
 function Profile() {
   const [cartCount, setCartCount] = useState(0);
   const [user, setUser] = useState(null); // State untuk menyimpan data pengguna
   const [error, setError] = useState(null); // State untuk menangani error
+  const navigate = useNavigate(); // Hook untuk navigasi
 
   useEffect(() => {
     // Fetch cart count
@@ -80,11 +82,25 @@ function Profile() {
             <p>
               <strong>Email:</strong> {user.email}
             </p>
-            {/* Tambahkan informasi lain yang dibutuhkan */}
+            <p>
+              <strong>Alamat:</strong> {user.alamat}
+            </p>
+            <p>
+              <strong>Nomer Handphone:</strong> {user.telephone}
+            </p>
           </div>
         ) : (
           <p>Loading profile...</p>
         )}
+      </div>
+
+      <div className="container mx-auto px-4 py-4">
+        <button
+          onClick={() => navigate(`/profile/${user?.id}`)} // Navigasi ke halaman edit profil
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Edit Profile
+        </button>
       </div>
       <Footer />
     </div>

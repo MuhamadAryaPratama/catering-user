@@ -8,6 +8,7 @@ function CategoryFoods() {
   const { id } = useParams();
   const [foods, setFoods] = useState([]);
   const [category, setCategory] = useState(null);
+  const [cartCount, setCartCount] = useState(0);
 
   // Fungsi untuk memformat harga ke format mata uang Indonesia
   const formatCurrency = (amount) => {
@@ -29,17 +30,43 @@ function CategoryFoods() {
         console.error("Failed to fetch foods:", error);
       }
     };
+    const fetchCartCount = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.log("No token found, user not logged in.");
+        return; // Exit if no token
+      }
+
+      try {
+        const response = await axiosClient.get("/cart");
+        const totalCount = response.data.data.reduce(
+          (total, item) => total + item.jumlah,
+          0
+        );
+        setCartCount(totalCount);
+      } catch (error) {
+        console.error("Failed to fetch cart count:", error);
+        // Handle token expiration or invalid token error
+        if (error.response && error.response.status === 401) {
+          console.log("Token may be expired or invalid.");
+          // Optionally, redirect to login or refresh token here
+        }
+      }
+    };
 
     fetchFoods();
+    fetchCartCount();
   }, [id]);
 
   return (
     <div>
-      <Navbar />
+      <Navbar cartCount={cartCount} />
       <div className="container mx-auto py-8">
         {category ? (
           <>
-            <h1 className="text-2xl font-bold mb-4">{category.name}</h1>
+            <h1 className="text-2xl font-bold mb-4 text-center">
+              {category.name}
+            </h1>
             {foods.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {foods.map((food) => (
@@ -48,7 +75,9 @@ function CategoryFoods() {
                     className="border p-4 rounded shadow hover:shadow-lg"
                   >
                     <img
-                      src={food.gambar_url}
+                      src={`${import.meta.env.VITE_API_BASE_URL}${
+                        food.gambar_url
+                      }`}
                       alt={food.nama}
                       className="w-full h-32 object-cover mb-2"
                     />

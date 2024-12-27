@@ -17,17 +17,17 @@ class CreateFoodsTable extends Migration
             $table->id();
             $table->string('nama'); // Nama makanan
             $table->text('deskripsi'); // Deskripsi makanan
-            $table->decimal('harga', 10, 2); // Harga makanan
+            $table->integer('harga'); // Harga makanan
             $table->string('gambar')->nullable(); // Nama file gambar
-            $table->unsignedBigInteger('category_id'); // Relasi ke kategori
-            $table->timestamps(); // Created_at dan updated_at
-
+            $table->unsignedBigInteger('category_id'); // Tipe data harus sesuai
+            $table->timestamps();
+        
             // Foreign key ke tabel categories
             $table->foreign('category_id')
                 ->references('id')
                 ->on('categories')
                 ->onDelete('cascade'); // Hapus makanan jika kategori dihapus
-        });
+        });        
     }
 
     /**

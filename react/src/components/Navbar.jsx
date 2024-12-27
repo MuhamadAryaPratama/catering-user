@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import axiosClient from "../axiosClient";
 import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import Logo from "../assets/logo.png";
+import PropTypes from "prop-types";
 
-// eslint-disable-next-line react/prop-types
 function Navbar({ cartCount = 0 }) {
   const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,7 +17,7 @@ function Navbar({ cartCount = 0 }) {
     const token = localStorage.getItem("access_token");
 
     if (!token) {
-      console.log("No token found, user not logged in.");
+      // console.log("No token found, user not logged in.");
       return;
     }
 
@@ -30,7 +30,6 @@ function Navbar({ cartCount = 0 }) {
       if (error.response && error.response.status === 401) {
         localStorage.removeItem("access_token"); // Token expired or invalid
         setUser(null); // Clear user info
-        navigate("/login"); // Redirect to login page
       }
     }
   };
@@ -40,7 +39,7 @@ function Navbar({ cartCount = 0 }) {
       await axiosClient.post("/auth/logout");
       localStorage.removeItem("access_token");
       setUser(null);
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       console.error("Failed to logout:", error);
     }
@@ -59,12 +58,11 @@ function Navbar({ cartCount = 0 }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="bg-gray-100 font-sans w-full m-0">
-      <div className="bg-white shadow">
+    <div className="bg-sky-200 font-sans w-full m-0">
+      <div className="bg-sky-400 shadow">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             <div>
@@ -75,19 +73,19 @@ function Navbar({ cartCount = 0 }) {
             <div className="hidden sm:flex sm:items-center">
               <Link
                 to="/categories"
-                className="text-gray-800 text-xl font-semibold hover:text-purple-600 mr-4"
+                className="text-gray-800 text-xl font-semibold hover:text-orange-700 mr-4"
               >
                 Categories
               </Link>
               <Link
                 to="/foods"
-                className="text-gray-800 text-xl font-semibold hover:text-purple-600 mr-4"
+                className="text-gray-800 text-xl font-semibold hover:text-orange-700 mr-4"
               >
                 Foods
               </Link>
               <Link
                 to="/about"
-                className="text-gray-800 text-xl font-semibold hover:text-purple-600 mr-4"
+                className="text-gray-800 text-xl font-semibold hover:text-orange-700 mr-4"
               >
                 About
               </Link>
@@ -97,10 +95,10 @@ function Navbar({ cartCount = 0 }) {
                 <div className="relative flex items-center" ref={dropdownRef}>
                   <Link
                     to="/cart"
-                    className="text-gray-800 hover:text-purple-600 mr-4 flex items-center relative"
+                    className="text-gray-800 hover:text-orange-700 mr-4 flex items-center relative"
                   >
                     {/* Increase the cart icon size */}
-                    <ShoppingCartIcon className="h-8 w-8 text-gray-800 hover:text-purple-600" />
+                    <ShoppingCartIcon className="h-8 w-8 text-gray-800 hover:text-orange-700" />
                     {/* Reduce the size of the cart count */}
                     {cartCount > 0 && (
                       <span className="absolute top-0 right-0 bg-red-500 text-white text-xxs font-bold w-4 h-4 flex items-center justify-center rounded-full">
@@ -138,7 +136,7 @@ function Navbar({ cartCount = 0 }) {
               ) : (
                 <Link
                   to="/login"
-                  className="text-gray-800 text-xl font-semibold hover:text-purple-600 mr-4"
+                  className="text-gray-800 text-xl font-semibold hover:text-orange-700 mr-4"
                 >
                   Sign in
                 </Link>
@@ -174,7 +172,7 @@ function Navbar({ cartCount = 0 }) {
           <div className="flex flex-col px-4 py-2">
             <Link
               to="/categories"
-              className="text-gray-800 text-sm font-semibold hover:text-purple-600 py-2"
+              className="text-gray-800 text-sm font-semibold hover:text-orange-700 py-2"
             >
               Categories
             </Link>
@@ -219,5 +217,9 @@ function Navbar({ cartCount = 0 }) {
     </div>
   );
 }
+
+Navbar.propTypes = {
+  cartCount: PropTypes.number, // Prop type validation for cartCount
+};
 
 export default Navbar;

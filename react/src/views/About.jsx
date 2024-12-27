@@ -2,15 +2,27 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import axiosClient from "../axiosClient";
+import { useNavigate } from "react-router-dom";
 
 function About() {
   const [cartCount, setCartCount] = useState(0);
+  const [suggestion, setSuggestion] = useState("");
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    setIsLoggedIn(!!token);
+
     const fetchCartCount = async () => {
+      if (!token) {
+        setCartCount(0);
+        return;
+      }
+
       try {
         const response = await axiosClient.get("/cart");
-        // Calculate the total count of items by summing the 'jumlah' property
         const totalCartCount = response.data.data.reduce(
           (total, item) => total + item.jumlah,
           0
@@ -18,11 +30,57 @@ function About() {
         setCartCount(totalCartCount);
       } catch (error) {
         console.error("Failed to fetch cart count:", error);
+        if (error.response && error.response.status === 401) {
+          localStorage.removeItem("access_token");
+          setIsLoggedIn(false);
+          setCartCount(0);
+        }
       }
     };
 
     fetchCartCount();
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isLoggedIn) {
+      const confirmLogin = window.confirm(
+        "Anda harus login terlebih dahulu untuk memberikan saran. Apakah Anda ingin login sekarang?"
+      );
+      if (confirmLogin) {
+        navigate("/login");
+      }
+      return;
+    }
+
+    try {
+      const response = await axiosClient.post("/suggestions", {
+        content: suggestion,
+      });
+
+      if (response.status === 201) {
+        setSubmitStatus("success");
+        setSuggestion("");
+        setTimeout(() => setSubmitStatus(null), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to submit suggestion:", error);
+      if (error.response && error.response.status === 401) {
+        setIsLoggedIn(false);
+        localStorage.removeItem("access_token");
+        const confirmLogin = window.confirm(
+          "Sesi Anda telah berakhir. Apakah Anda ingin login kembali?"
+        );
+        if (confirmLogin) {
+          navigate("/login");
+        }
+      } else {
+        setSubmitStatus("error");
+        setTimeout(() => setSubmitStatus(null), 3000);
+      }
+    }
+  };
 
   return (
     <>
@@ -32,9 +90,7 @@ function About() {
           <h1 className="text-3xl font-bold">Warung Nasi Marsel</h1>
         </div>
 
-        {/* Main Content Section */}
         <div className="main-content flex flex-col md:flex-row md:space-x-8 bg-orange-100 p-8 rounded-lg">
-          {/* Map Section with Centered Title */}
           <div className="location md:w-1/2 mb-8 md:mb-0">
             <h2 className="text-2xl font-semibold text-center mb-4">Lokasi</h2>
             <iframe
@@ -48,18 +104,16 @@ function About() {
             ></iframe>
           </div>
 
-          {/* About Us and Contact Section */}
-          <div className="about-us md:w-1/2 flex flex-col justify-start pt-10">
+          <div className="about-us md:w-1/2">
             <h2 className="text-2xl font-semibold mb-4">Sejarah</h2>
             <p className="mb-6">
               Warung Nasi Marsel adalah tempat makan yang berasal dari Kuningan
               Jawa Barat, menawarkan berbagai macam hidangan khas Sunda. Kami
               menggunakan bahan-bahan segar dan berkualitas untuk menyajikan
-              makanan yang lezat dan bergizi. Dengan suasana yang nyaman dan
-              pelayanan yang ramah, kami berkomitmen untuk memberikan pengalaman
-              makan yang menyenangkan bagi semua pelanggan kami.
+              makanan yang lezat dan bergizi.
             </p>
-            <div className="contact mt-8">
+
+            <div className="contact mb-8">
               <h2 className="text-2xl font-semibold mb-4">Kontak Kami</h2>
               <div className="contact-details space-y-2">
                 <p>
@@ -72,6 +126,67 @@ function About() {
                   <strong>Email:</strong> warungnasimarsel@gmail.com
                 </p>
               </div>
+            </div>
+
+            {/* Suggestion Form Section */}
+            <div className="suggestion-form bg-white p-6 rounded-lg shadow-sm">
+              <h2 className="text-2xl font-semibold mb-4">
+                Berikan Saran Anda
+              </h2>
+
+              {!isLoggedIn && (
+                <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded">
+                  Silakan login terlebih dahulu untuk memberikan saran.
+                </div>
+              )}
+
+              {submitStatus === "success" && (
+                <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+                  Terima kasih! Saran Anda telah berhasil dikirim.
+                </div>
+              )}
+
+              {submitStatus === "error" && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                  Maaf, terjadi kesalahan. Silakan coba lagi.
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label
+                    className="block text-sm font-medium mb-2"
+                    htmlFor="suggestion"
+                  >
+                    Pesan Saran
+                  </label>
+                  <textarea
+                    id="suggestion"
+                    value={suggestion}
+                    onChange={(e) => setSuggestion(e.target.value)}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows="4"
+                    placeholder={
+                      isLoggedIn
+                        ? "Tulis saran Anda di sini..."
+                        : "Silakan login terlebih dahulu untuk memberikan saran"
+                    }
+                    required
+                    disabled={!isLoggedIn}
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  className={`w-full px-4 py-2 rounded-lg transition-colors ${
+                    isLoggedIn
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                  disabled={!isLoggedIn}
+                >
+                  {isLoggedIn ? "Kirim Saran" : "Login untuk Kirim Saran"}
+                </button>
+              </form>
             </div>
           </div>
         </div>

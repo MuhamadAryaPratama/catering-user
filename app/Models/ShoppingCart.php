@@ -22,9 +22,15 @@ class ShoppingCart extends Model
      * @var array
      */
     protected $fillable = [
+        'user_id',
         'nama_menu',
         'jumlah',
         'harga_total',
         'harga_satuan',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

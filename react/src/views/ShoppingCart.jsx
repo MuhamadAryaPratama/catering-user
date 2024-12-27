@@ -8,11 +8,19 @@ function ShoppingCart() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
         const response = await axiosClient.get("/cart");
-        setCartItems(response.data.data); // Harga sudah dihitung di backend
+        setCartItems(response.data.data);
       } catch {
         Swal.fire({
           title: "Error",
@@ -53,7 +61,7 @@ function ShoppingCart() {
             ? {
                 ...i,
                 jumlah: updatedQuantity,
-                harga_total: i.harga_satuan * updatedQuantity, // Update harga_total
+                harga_total: i.harga_satuan * updatedQuantity,
               }
             : i
         )
@@ -122,11 +130,11 @@ function ShoppingCart() {
                   <div>
                     <h3 className="text-lg font-medium">{item.nama_menu}</h3>
                     <p className="text-sm text-gray-600">
-                      Harga Satuan: Rp{item.harga_satuan} | Jumlah:{" "}
-                      {item.jumlah}
+                      Harga Satuan: {formatCurrency(item.harga_satuan)} |
+                      Jumlah: {item.jumlah}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Harga Total: Rp{item.harga_total.toLocaleString()}
+                      Harga Total: {formatCurrency(item.harga_total)}
                     </p>
                   </div>
                 </div>
@@ -154,7 +162,9 @@ function ShoppingCart() {
               </div>
             ))}
             <div className="border-t pt-4 text-right">
-              <h2 className="text-xl font-bold">Total: Rp{calculateTotal()}</h2>
+              <h2 className="text-xl font-bold">
+                Total: {formatCurrency(calculateTotal())}
+              </h2>
               <button className="mt-4 bg-green-500 text-white font-bold py-2 px-4 rounded w-full hover:bg-green-600">
                 Check Out
               </button>

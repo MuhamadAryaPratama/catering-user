@@ -14,7 +14,7 @@ class ShoppingCartController extends Controller
      */
     public function index()
     {
-        $cartItems = ShoppingCart::all();
+        $cartItems = ShoppingCart::where('user_id', auth()->id())->get();
         return response()->json(['status' => 'success', 'data' => $cartItems], 200);
     }
 
@@ -29,9 +29,10 @@ class ShoppingCartController extends Controller
         $validated = $request->validate([
             'nama_menu' => 'required|string|max:255',
             'jumlah' => 'required|integer|min:1',
-            'harga_satuan' => 'required|numeric|min:0', // Tambahkan harga_satuan
+            'harga_satuan' => 'required|numeric|min:0',
         ]);
         
+        $validated['user_id'] = auth()->id();
         $validated['harga_total'] = $validated['jumlah'] * $validated['harga_satuan'];
         
         $cartItem = ShoppingCart::create($validated);        
@@ -48,7 +49,9 @@ class ShoppingCartController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $cartItem = ShoppingCart::find($id);
+        $cartItem = ShoppingCart::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
 
         if (!$cartItem) {
             return response()->json(['status' => 'error', 'message' => 'Cart item not found'], 404);
@@ -75,7 +78,9 @@ class ShoppingCartController extends Controller
      */
     public function destroy($id)
     {
-        $cartItem = ShoppingCart::find($id);
+        $cartItem = ShoppingCart::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
 
         if (!$cartItem) {
             return response()->json(['status' => 'error', 'message' => 'Cart item not found'], 404);

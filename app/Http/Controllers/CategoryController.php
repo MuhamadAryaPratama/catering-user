@@ -11,7 +11,7 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::all()->map(function ($category) {
-            $category->image_url = $category->image ? asset('storage/category/' . $category->image) : null;
+            $category->image_url = $category->image ? Storage::disk('public')->url('category/' . $category->image) : null;
             return $category;
         });
 
@@ -26,16 +26,14 @@ class CategoryController extends Controller
         ]);
 
         try {
-            $originalName = $request->file('image')->getClientOriginalName();
-            $fileName = time() . '_' . $originalName;
-            $request->file('image')->storeAs('category', $fileName, 'public');
+            $fileName = $request->file('image')->store('category', 'public');
 
             $category = Category::create([
                 'name' => $validated['name'],
-                'image' => $fileName,
+                'image' => basename($fileName),
             ]);
 
-            $category->image_url = asset('storage/category/' . $fileName);
+            $category->image_url = Storage::disk('public')->url('category/' . $category->image);
 
             return response()->json([
                 'status' => 'success',
@@ -66,20 +64,18 @@ class CategoryController extends Controller
 
         try {
             if ($request->hasFile('image')) {
-                if ($category->image) {
+                // Delete old image
+                if ($category->image && Storage::disk('public')->exists('category/' . $category->image)) {
                     Storage::disk('public')->delete('category/' . $category->image);
                 }
 
-                $originalName = $request->file('image')->getClientOriginalName();
-                $fileName = time() . '_' . $originalName;
-                $request->file('image')->storeAs('category', $fileName, 'public');
-
-                $validated['image'] = $fileName;
+                $fileName = $request->file('image')->store('category', 'public');
+                $validated['image'] = basename($fileName);
             }
 
             $category->update($validated);
 
-            $category->image_url = $category->image ? asset('storage/category/' . $category->image) : null;
+            $category->image_url = $category->image ? Storage::disk('public')->url('category/' . $category->image) : null;
 
             return response()->json(['status' => 'success', 'data' => $category], 200);
         } catch (\Exception $e) {
@@ -100,7 +96,8 @@ class CategoryController extends Controller
         }
 
         try {
-            if ($category->image) {
+            // Delete image file if exists
+            if ($category->image && Storage::disk('public')->exists('category/' . $category->image)) {
                 Storage::disk('public')->delete('category/' . $category->image);
             }
 

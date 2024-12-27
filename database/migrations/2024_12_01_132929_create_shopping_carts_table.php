@@ -15,10 +15,11 @@ return new class extends Migration
     {
         Schema::create('shopping_carts', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('nama_menu');
-            $table->integer('jumlah'); // Jumlah item dalam cart
-            $table->integer('harga_total'); // Total harga dalam integer (in cents or whole units)
-            $table->integer('harga_satuan'); // Harga satuan item
+            $table->integer('jumlah');
+            $table->integer('harga_total');
+            $table->integer('harga_satuan');
             $table->timestamps();
         });
     }

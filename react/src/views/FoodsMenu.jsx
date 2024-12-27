@@ -8,11 +8,9 @@ import { useNavigate } from "react-router-dom";
 function FoodsMenu() {
   const [cartCount, setCartCount] = useState(0);
   const [foods, setFoods] = useState([]);
-  const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fungsi untuk memformat harga ke format Rp.xx.xxx
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -21,34 +19,29 @@ function FoodsMenu() {
     }).format(amount);
   };
 
-  // Fetch cart and foods data
+  const fetchCartCount = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        const cartResponse = await axiosClient.get("/cart");
+        const cartData = cartResponse.data.data;
+        const totalCount = cartData.reduce(
+          (total, item) => total + item.jumlah,
+          0
+        );
+        setCartCount(totalCount);
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart count:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-
-        // Fetch foods always
         const foodsResponse = await axiosClient.get("/foods");
         setFoods(foodsResponse.data.data);
-
-        // Only attempt to fetch cart if token exists
-        if (token) {
-          try {
-            const cartResponse = await axiosClient.get("/cart");
-            setCartItems(cartResponse.data.data);
-            updateCartCount(cartResponse.data.data);
-          } catch (cartError) {
-            // If cart fetch fails, just log it and set cart to empty
-            console.error("Failed to fetch cart:", cartError);
-            setCartItems([]);
-            setCartCount(0);
-          }
-        } else {
-          // No token, so reset cart items
-          setCartItems([]);
-          setCartCount(0);
-        }
-      // eslint-disable-next-line no-unused-vars
+        await fetchCartCount();
       } catch (error) {
         Swal.fire({
           title: "Error",
@@ -64,62 +57,90 @@ function FoodsMenu() {
     fetchData();
   }, []);
 
-  const updateCartCount = (cartItems) => {
-    const totalCount = cartItems.reduce(
-      (total, item) => total + item.jumlah,
-      0
-    );
-    setCartCount(totalCount);
+  const goToDetail = (foodId) => {
+    navigate(`/foods/${foodId}`);
   };
 
-  const addToCart = async (product) => {
-    const token = localStorage.getItem("access_token");
+  const handleOrderNow = async (food) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        Swal.fire({
+          title: "Login Required",
+          text: "Anda harus login terlebih dahulu untuk memesan.",
+          icon: "warning",
+          confirmButtonText: "OK",
+        });
+        navigate("/foods");
+        return;
+      }
 
+      navigate("/order-form", {
+        state: {
+          foodData: {
+            name: food.nama,
+            price: food.harga,
+            quantity: 1,
+            total: food.harga,
+          },
+        },
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Error",
+        text: "Gagal memproses pesanan.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+      console.error("Order failed:", error);
+    }
+  };
+
+  const handleCartClick = async (food) => {
+    const token = localStorage.getItem("access_token");
     if (!token) {
       Swal.fire({
         title: "Login Required",
-        text: "Please log in to add items to the cart.",
+        text: "Anda harus login terlebih dahulu untuk mengakses keranjang.",
         icon: "warning",
         confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/login");
       });
-      return;
-    }
-
-    // Periksa apakah makanan sudah ada di keranjang
-    const isInCart = cartItems.some((item) => item.nama_menu === product.nama);
-
-    if (isInCart) {
-      Swal.fire({
-        title: "Info",
-        text: `${product.nama} sudah ada di keranjang.`,
-        icon: "info",
-        confirmButtonText: "OK",
-      });
+      navigate("/foods");
       return;
     }
 
     try {
-      // Tambahkan produk ke keranjang
+      const cartResponse = await axiosClient.get("/cart");
+      const currentCart = cartResponse.data.data;
+
+      const existingItem = currentCart.find(
+        (item) => item.nama_menu === food.nama
+      );
+
+      if (existingItem) {
+        Swal.fire({
+          title: "Info",
+          text: `${food.nama} sudah ada di keranjang.`,
+          icon: "info",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
       await axiosClient.post("/cart", {
-        nama_menu: product.nama,
+        nama_menu: food.nama,
         jumlah: 1,
-        harga_satuan: product.harga, // Harga satuan
+        harga_satuan: food.harga,
       });
 
-      // Perbarui data keranjang dan hitung ulang jumlah item
-      const updatedCartResponse = await axiosClient.get("/cart");
-      setCartItems(updatedCartResponse.data.data);
-      updateCartCount(updatedCartResponse.data.data);
+      await fetchCartCount();
 
       Swal.fire({
         title: "Added to Cart",
-        text: `${product.nama} telah ditambahkan ke keranjang.`,
+        text: `${food.nama} telah ditambahkan ke keranjang.`,
         icon: "success",
         confirmButtonText: "OK",
       });
-    // eslint-disable-next-line no-unused-vars
     } catch (error) {
       Swal.fire({
         title: "Error",
@@ -127,23 +148,7 @@ function FoodsMenu() {
         icon: "error",
         confirmButtonText: "OK",
       });
-    }
-  };
-
-  const handleOrderClick = () => {
-    const token = localStorage.getItem("access_token");
-
-    if (!token) {
-      Swal.fire({
-        title: "Login Required",
-        text: "Please log in to place an order.",
-        icon: "warning",
-        confirmButtonText: "OK",
-      }).then(() => {
-        navigate("/login");
-      });
-    } else {
-      navigate("/order-form");
+      console.error("Cart operation failed:", error);
     }
   };
 
@@ -151,44 +156,59 @@ function FoodsMenu() {
     <div>
       <Navbar cartCount={cartCount} />
       <div className="container mx-auto py-8">
-        <h1 className="text-center text-3xl font-bold mb-6">Daftar Menu</h1>
+        <h2 className="text-center mt-5">
+          Selamat datang di Catering Warung Nasi Marsel
+        </h2>
+        <p className="text-center">
+          Kami menyediakan berbagai menu lezat dengan harga terjangkau.
+        </p>
+        <p className="text-center py-3">
+          Berikut ini menu yang tersedia di Catering Warung Nasi Marsel
+        </p>
+
+        <h1 className="text-3xl font-bold text-center mb-6">Daftar Menu</h1>
 
         {loading ? (
           <p className="text-center">Loading...</p>
         ) : (
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {foods.map((food) => (
               <div
                 key={food.id}
-                className="bg-white rounded-lg overflow-hidden shadow-lg ring-4 ring-red-500 ring-opacity-40 max-w-xs"
+                className="bg-white rounded-lg overflow-hidden shadow-lg hover:bg-cyan-600 hover:shadow-2xl transition duration-300 cursor-pointer w-full h-96"
+                onClick={() => goToDetail(food.id)}
               >
-                <div className="relative">
+                <div className="h-1/2 overflow-hidden">
                   <img
-                    className="w-full"
-                    src={food.gambar_url}
+                    className="w-full h-full object-cover"
+                    src={`${import.meta.env.VITE_API_BASE_URL}${
+                      food.gambar_url
+                    }`}
                     alt={food.nama}
                   />
                 </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-medium mb-2">{food.nama}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{food.deskripsi}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-lg">
-                      {formatCurrency(food.harga)}
-                    </span>
+                <div className="h-1/2 p-4 flex flex-col justify-between">
+                  <h3 className="text-lg font-medium mb-2 text-center">
+                    {food.nama}
+                  </h3>
+                  <div className="font-bold text-lg mb-4 text-center">
+                    {formatCurrency(food.harga)}
                   </div>
-                  <div className="flex items-center justify-between mt-4 space-x-2">
+                  <div className="flex items-center justify-center space-x-3">
                     <button
-                      onClick={() => addToCart(food)}
-                      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded flex items-center justify-center"
+                      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCartClick(food);
+                      }}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.5}
+                        strokeWidth="1.5"
                         stroke="currentColor"
-                        className="w-5 h-5"
+                        className="size-6"
                       >
                         <path
                           strokeLinecap="round"
@@ -198,8 +218,11 @@ function FoodsMenu() {
                       </svg>
                     </button>
                     <button
-                      onClick={handleOrderClick}
                       className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOrderNow(food);
+                      }}
                     >
                       Pesan Sekarang
                     </button>

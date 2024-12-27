@@ -29,8 +29,10 @@ class AuthController extends Controller
     public function register()
     {
         $validator = Validator::make(request()->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'name' => 'required|string|max:50',
+            'alamat'=> 'required|string|max:255',
+            'telephone'=> 'required|string|max:15',
+            'email' => 'required|string|email|max:25|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
         
@@ -43,6 +45,8 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => request('name'),
+            'alamat' => request('alamat'),
+            'telephone' => request('telephone'),
             'email' => request('email'),
             'password' => Hash::make(request('password'))
         ]);
@@ -217,15 +221,18 @@ class AuthController extends Controller
     }
 
     /**
-     * Change user password
+     * Update the user's profile.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function changePassword()
+    public function updateProfile()
     {
+        $user = auth()->user();
+
         $validator = Validator::make(request()->all(), [
-            'password' => 'required|string|min:8|confirmed',
-            'password_confirmation' => 'required|string|min:8',
+            'name' => 'sometimes|required|string|max:50',
+            'alamat' => 'sometimes|required|string|max:255',
+            'telephone' => 'sometimes|required|string|max:15',
         ]);
 
         if ($validator->fails()) {
@@ -236,27 +243,17 @@ class AuthController extends Controller
         }
 
         try {
-            $user = auth()->user();
-
-            $updated = User::where('id', $user->id)->update([
-                'password' => Hash::make(request('password')),
-            ]);
-
-            if ($updated) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'Password berhasil diubah',
-                ], 200);
-            }
+            $user->update(request()->only('name', 'alamat', 'telephone'));
 
             return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal mengubah password',
-            ], 500);
+                'status' => 'success',
+                'message' => 'Profil berhasil diperbarui',
+                'data' => $user,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'message' => 'Gagal memperbarui profil: ' . $e->getMessage(),
             ], 500);
         }
     }

@@ -174,7 +174,13 @@ function OrderForm() {
               loading ? "bg-gray-500" : "bg-blue-500 hover:bg-blue-600"
             } focus:outline-none`}
           >
-            {loading ? "Mengirim..." : "Kirim Pesanan"}
+            Beli
+          </button>
+          <button
+            className="w-full py-2 px-4 font-bold text-white rounded-lg bg-stone-600 mt-2"
+            onClick={() => navigate("/foods")}
+          >
+            Kembali
           </button>
         </form>
       </div>
