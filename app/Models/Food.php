@@ -34,11 +34,16 @@ class Food extends Model
         return $this->belongsTo(Category::class);
     }
 
+    // Define the inverse relationship with ShoppingCart
+    public function shoppingCarts()
+    {
+        return $this->hasMany(ShoppingCart::class);
+    }
+
     public function toArray()
     {
         $data = parent::toArray();
         $data['gambar_url'] = $this->gambar ? asset('storage/foods/' . $this->gambar) : null;
         return $data;
     }
-
 }

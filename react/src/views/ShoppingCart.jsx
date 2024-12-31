@@ -3,8 +3,10 @@ import Swal from "sweetalert2";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import axiosClient from "../axiosClient";
+import { useNavigate } from "react-router-dom";
 
 function ShoppingCart() {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -107,6 +109,10 @@ function ShoppingCart() {
     return cartItems.reduce((total, item) => total + item.jumlah, 0);
   };
 
+  const handleCheckout = () => {
+    navigate("/order-form-cart");
+  };
+
   return (
     <div>
       <Navbar cartCount={calculateCartCount()} />
@@ -123,9 +129,14 @@ function ShoppingCart() {
               >
                 <div className="flex items-center">
                   <img
-                    src="https://via.placeholder.com/50"
+                    src={`${import.meta.env.VITE_API_BASE_URL}/storage/foods/${
+                      item.food?.gambar
+                    }`}
                     alt={item.nama_menu}
-                    className="w-12 h-12 rounded mr-4"
+                    className="w-12 h-12 object-cover rounded mr-4"
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/50";
+                    }}
                   />
                   <div>
                     <h3 className="text-lg font-medium">{item.nama_menu}</h3>
@@ -165,7 +176,10 @@ function ShoppingCart() {
               <h2 className="text-xl font-bold">
                 Total: {formatCurrency(calculateTotal())}
               </h2>
-              <button className="mt-4 bg-green-500 text-white font-bold py-2 px-4 rounded w-full hover:bg-green-600">
+              <button
+                onClick={handleCheckout}
+                className="mt-4 bg-green-500 text-white font-bold py-2 px-4 rounded w-full hover:bg-green-600"
+              >
                 Check Out
               </button>
             </div>

@@ -13,7 +13,7 @@ function CategoryMenu() {
     const fetchCategories = async () => {
       try {
         const response = await axiosClient.get("/categories");
-        console.log("Categories response:", response.data);
+        // console.log("Categories response:", response.data);
         setCategories(response.data.data);
       } catch (error) {
         console.error("Failed to fetch categories:", error);

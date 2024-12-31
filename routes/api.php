@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FoodController;
 use App\Http\Controllers\ShoppingCartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SuggestionController;
+use App\Http\Controllers\PaymentController;
 
 // Public Routes (tanpa autentikasi)
 Route::get('/foods', [FoodController::class, 'index']);
@@ -55,4 +57,16 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::post('/cart', [ShoppingCartController::class, 'store']);
     Route::put('/cart/{id}', [ShoppingCartController::class, 'update']);
     Route::delete('/cart/{id}', [ShoppingCartController::class, 'destroy']);
+
+    // Order Routes
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders/direct', [OrderController::class, 'storeDirect']);
+    Route::post('/orders/cart', [OrderController::class, 'storeFromCart']);
+    Route::get('/orders/{id}', [OrderController::class, 'show']);
+    Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+
+    // Payment Routes
+    Route::post('/payments/{orderId}', [PaymentController::class, 'createPayment']);
+    Route::post('/payments/callback', [PaymentController::class, 'callback'])->name('payments.callback');
+    Route::get('/payments/success', [PaymentController::class, 'return'])->name('payments.return');
 });

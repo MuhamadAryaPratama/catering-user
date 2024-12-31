@@ -1,137 +1,86 @@
-import React, { Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
-// Lazy load components
-const Dashboard = React.lazy(() => import("./views/Dashboard"));
-const Login = React.lazy(() => import("./views/Login"));
-const Signup = React.lazy(() => import("./views/Signup"));
-const ForgotPassword = React.lazy(() => import("./components/ForgotPassword"));
-const ResetPassword = React.lazy(() => import("./components/ResetPassword"));
-const FoodsMenu = React.lazy(() => import("./views/FoodsMenu"));
-const CategoryMenu = React.lazy(() => import("./views/CategoryMenu"));
-const About = React.lazy(() => import("./views/About"));
-const ShoppingCart = React.lazy(() => import("./views/ShoppingCart"));
-const CategoryFoods = React.lazy(() => import("./components/CategoryFoods"));
-const OrderForm = React.lazy(() => import("./components/OrderForm"));
-const Profile = React.lazy(() => import("./views/Profile"));
-const FoodDetail = React.lazy(() => import("./components/FoodDetail"));
-const EditProfile = React.lazy(() => import("./components/EditProfile"));
-
-// Fallback loader
-const Loader = () => <div>Loading...</div>;
+import Dashboard from "./views/Dashboard";
+import Login from "./views/Login";
+import Signup from "./views/Signup";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
+import FoodsMenu from "./views/FoodsMenu";
+import CategoryMenu from "./views/CategoryMenu";
+import About from "./views/About";
+import ShoppingCart from "./views/ShoppingCart";
+import CategoryFoods from "./components/CategoryFoods";
+import OrderFormDirect from "./components/OrderFormDirect";
+import Profile from "./views/Profile";
+import FoodDetail from "./components/FoodDetail";
+import EditProfile from "./components/EditProfile";
+import OrderFormCart from "./components/OrderFormCart";
+import Payment from "./components/Payment";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <Dashboard />
-      </Suspense>
-    ),
+    element: <Dashboard />,
   },
   {
     path: "/login",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <Login />
-      </Suspense>
-    ),
+    element: <Login />,
   },
   {
     path: "/signup",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <Signup />
-      </Suspense>
-    ),
+    element: <Signup />,
   },
   {
     path: "/forgot-password",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <ForgotPassword />
-      </Suspense>
-    ),
+    element: <ForgotPassword />,
   },
   {
     path: "/reset-password",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <ResetPassword />
-      </Suspense>
-    ),
+    element: <ResetPassword />,
   },
   {
     path: "/foods",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <FoodsMenu />
-      </Suspense>
-    ),
+    element: <FoodsMenu />,
   },
   {
     path: "/foods/:id",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <FoodDetail />
-      </Suspense>
-    ),
+    element: <FoodDetail />,
   },
   {
     path: "/categories",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <CategoryMenu />
-      </Suspense>
-    ),
+    element: <CategoryMenu />,
   },
   {
     path: "/categories/:id",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <CategoryFoods />
-      </Suspense>
-    ),
+    element: <CategoryFoods />,
   },
   {
     path: "/about",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <About />
-      </Suspense>
-    ),
+    element: <About />,
   },
   {
     path: "/cart",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <ShoppingCart />
-      </Suspense>
-    ),
+    element: <ShoppingCart />,
   },
   {
     path: "/order-form",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <OrderForm />
-      </Suspense>
-    ),
+    element: <OrderFormDirect />,
   },
   {
     path: "/profile",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <Profile />
-      </Suspense>
-    ),
+    element: <Profile />,
   },
   {
     path: "/profile/:id",
-    element: (
-      <Suspense fallback={<Loader />}>
-        <EditProfile />
-      </Suspense>
-    ),
+    element: <EditProfile />,
+  },
+  {
+    path: "/order-form-cart",
+    element: <OrderFormCart />,
+  },
+  {
+    path: "/payment",
+    element: <Payment />,
   },
 ]);
 

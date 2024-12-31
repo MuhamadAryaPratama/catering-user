@@ -9,25 +9,23 @@ class ShoppingCart extends Model
 {
     use HasFactory;
 
-    /**
-     * Specify the table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'shopping_carts';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'user_id',
+        'food_id',
         'nama_menu',
         'jumlah',
         'harga_total',
         'harga_satuan',
     ];
+
+    // Define the relationship with Food
+    public function food()
+    {
+        return $this->belongsTo(Food::class, 'food_id');
+
+    }
 
     public function user()
     {

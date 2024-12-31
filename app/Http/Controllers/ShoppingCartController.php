@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ShoppingCart;
 use Illuminate\Http\Request;
+use App\Models\Food;
 
 class ShoppingCartController extends Controller
 {
@@ -27,17 +28,54 @@ class ShoppingCartController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_menu' => 'required|string|max:255',
-            'jumlah' => 'required|integer|min:1',
-            'harga_satuan' => 'required|numeric|min:0',
+            'food_id' => 'required|exists:foods,id',
+            'jumlah' => 'required|integer|min:1'
         ]);
-        
-        $validated['user_id'] = auth()->id();
-        $validated['harga_total'] = $validated['jumlah'] * $validated['harga_satuan'];
-        
-        $cartItem = ShoppingCart::create($validated);        
 
-        return response()->json(['status' => 'success', 'data' => $cartItem], 201);
+        try {
+            // Ambil data makanan dari database
+            $food = Food::findOrFail($validated['food_id']);
+
+            // Cek apakah item sudah ada di keranjang pengguna
+            $existingItem = ShoppingCart::where('user_id', auth()->id())
+                ->where('food_id', $food->id)
+                ->first();
+
+            if ($existingItem) {
+                // Jika sudah ada, tambahkan jumlah dan perbarui harga total
+                $existingItem->jumlah += $validated['jumlah'];
+                $existingItem->harga_total = $existingItem->jumlah * $food->harga;
+                $existingItem->save();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Item quantity updated in cart',
+                    'data' => $existingItem
+                ], 200);
+            }
+
+            // Jika belum ada, tambahkan item baru ke keranjang
+            $cartItem = ShoppingCart::create([
+                'user_id' => auth()->id(),
+                'food_id' => $food->id,
+                'nama_menu' => $food->nama,
+                'jumlah' => $validated['jumlah'],
+                'harga_satuan' => $food->harga,
+                'harga_total' => $food->harga * $validated['jumlah']
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Item added to cart successfully',
+                'data' => $cartItem
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to add item to cart',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -59,13 +97,14 @@ class ShoppingCartController extends Controller
 
         $validated = $request->validate([
             'jumlah' => 'sometimes|integer|min:1',
+            'food_id' => 'sometimes|exists:foods,id',
         ]);
-        
+
         if (isset($validated['jumlah'])) {
             $validated['harga_total'] = $cartItem->harga_satuan * $validated['jumlah'];
         }
-        
-        $cartItem->update($validated);        
+
+        $cartItem->update($validated);
 
         return response()->json(['status' => 'success', 'data' => $cartItem], 200);
     }

@@ -42,6 +42,7 @@ function FoodsMenu() {
         const foodsResponse = await axiosClient.get("/foods");
         setFoods(foodsResponse.data.data);
         await fetchCartCount();
+        // eslint-disable-next-line no-unused-vars
       } catch (error) {
         Swal.fire({
           title: "Error",
@@ -77,11 +78,10 @@ function FoodsMenu() {
 
       navigate("/order-form", {
         state: {
+          orderType: "direct",
           foodData: {
-            name: food.nama,
-            price: food.harga,
+            id: food.id,
             quantity: 1,
-            total: food.harga,
           },
         },
       });
@@ -110,75 +110,64 @@ function FoodsMenu() {
     }
 
     try {
-      const cartResponse = await axiosClient.get("/cart");
-      const currentCart = cartResponse.data.data;
+      const response = await axiosClient.post("/cart", {
+        food_id: food.id,
+        jumlah: 1,
+      });
 
-      const existingItem = currentCart.find(
-        (item) => item.nama_menu === food.nama
-      );
+      if (response.data.status === "success") {
+        await fetchCartCount();
 
-      if (existingItem) {
         Swal.fire({
-          title: "Info",
-          text: `${food.nama} sudah ada di keranjang.`,
-          icon: "info",
+          title: "Success",
+          text: `${food.nama} telah ditambahkan ke keranjang.`,
+          icon: "success",
           confirmButtonText: "OK",
         });
-        return;
       }
-
-      await axiosClient.post("/cart", {
-        nama_menu: food.nama,
-        jumlah: 1,
-        harga_satuan: food.harga,
-      });
-
-      await fetchCartCount();
-
-      Swal.fire({
-        title: "Added to Cart",
-        text: `${food.nama} telah ditambahkan ke keranjang.`,
-        icon: "success",
-        confirmButtonText: "OK",
-      });
     } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Gagal menambahkan item ke keranjang.";
+
       Swal.fire({
         title: "Error",
-        text: "Gagal menambahkan item ke keranjang.",
+        text: errorMessage,
         icon: "error",
         confirmButtonText: "OK",
       });
-      console.error("Cart operation failed:", error);
     }
   };
 
   return (
     <div>
       <Navbar cartCount={cartCount} />
-      <div className="container mx-auto py-8">
-        <h2 className="text-center mt-5">
+      <div className="container mx-auto py-8 px-4 md:px-8">
+        <h2 className="text-center mt-5 text-3xl font-bold text-teal-700">
           Selamat datang di Catering Warung Nasi Marsel
         </h2>
-        <p className="text-center">
-          Kami menyediakan berbagai menu lezat dengan harga terjangkau.
+        <p className="text-center text-lg text-gray-600">
+          Kami menyediakan berbagai menu lezat dengan harga terjangkau. Jelajahi
+          menu kami dan temukan hidangan favorit Anda.
         </p>
-        <p className="text-center py-3">
-          Berikut ini menu yang tersedia di Catering Warung Nasi Marsel
+        <p className="text-center text-md py-3 text-gray-500">
+          Berikut ini menu yang tersedia di Catering Warung Nasi Marsel:
         </p>
 
-        <h1 className="text-3xl font-bold text-center mb-6">Daftar Menu</h1>
+        <h1 className="text-4xl font-extrabold text-center mb-6 text-teal-800">
+          Daftar Menu
+        </h1>
 
         {loading ? (
-          <p className="text-center">Loading...</p>
+          <div className="text-center text-lg text-gray-500">Loading...</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {foods.map((food) => (
               <div
                 key={food.id}
-                className="bg-white rounded-lg overflow-hidden shadow-lg hover:bg-cyan-600 hover:shadow-2xl transition duration-300 cursor-pointer w-full h-96"
+                className="bg-white rounded-lg overflow-hidden shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300 cursor-pointer w-full"
                 onClick={() => goToDetail(food.id)}
               >
-                <div className="h-1/2 overflow-hidden">
+                <div className="h-56 overflow-hidden">
                   <img
                     className="w-full h-full object-cover"
                     src={`${import.meta.env.VITE_API_BASE_URL}${
@@ -187,16 +176,16 @@ function FoodsMenu() {
                     alt={food.nama}
                   />
                 </div>
-                <div className="h-1/2 p-4 flex flex-col justify-between">
-                  <h3 className="text-lg font-medium mb-2 text-center">
+                <div className="p-4 flex flex-col justify-between">
+                  <h3 className="text-lg font-semibold text-teal-700 text-center">
                     {food.nama}
                   </h3>
-                  <div className="font-bold text-lg mb-4 text-center">
+                  <div className="font-bold text-lg mb-4 text-center text-teal-600">
                     {formatCurrency(food.harga)}
                   </div>
                   <div className="flex items-center justify-center space-x-3">
                     <button
-                      className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded"
+                      className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-3 rounded shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCartClick(food);
@@ -218,7 +207,7 @@ function FoodsMenu() {
                       </svg>
                     </button>
                     <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleOrderNow(food);

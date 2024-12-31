@@ -9,11 +9,27 @@ function About() {
   const [suggestion, setSuggestion] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     setIsLoggedIn(!!token);
+
+    // Fetch user data if logged in
+    const fetchUserData = async () => {
+      if (token) {
+        try {
+          const response = await axiosClient.post("/auth/me");
+          setUserData(response.data);
+        } catch (error) {
+          console.error("Failed to fetch user data:", error);
+          if (error.response?.status === 401) {
+            handleLogout();
+          }
+        }
+      }
+    };
 
     const fetchCartCount = async () => {
       if (!token) {
@@ -30,16 +46,22 @@ function About() {
         setCartCount(totalCartCount);
       } catch (error) {
         console.error("Failed to fetch cart count:", error);
-        if (error.response && error.response.status === 401) {
-          localStorage.removeItem("access_token");
-          setIsLoggedIn(false);
-          setCartCount(0);
+        if (error.response?.status === 401) {
+          handleLogout();
         }
       }
     };
 
+    fetchUserData();
     fetchCartCount();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    setIsLoggedIn(false);
+    setCartCount(0);
+    setUserData(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,19 +78,22 @@ function About() {
 
     try {
       const response = await axiosClient.post("/suggestions", {
+        user_id: userData.id,
         content: suggestion,
       });
 
       if (response.status === 201) {
-        setSubmitStatus("success");
+        setSubmitStatus({
+          type: "success",
+          message: "Terima kasih! Saran Anda telah berhasil dikirim.",
+        });
         setSuggestion("");
         setTimeout(() => setSubmitStatus(null), 3000);
       }
     } catch (error) {
       console.error("Failed to submit suggestion:", error);
-      if (error.response && error.response.status === 401) {
-        setIsLoggedIn(false);
-        localStorage.removeItem("access_token");
+      if (error.response?.status === 401) {
+        handleLogout();
         const confirmLogin = window.confirm(
           "Sesi Anda telah berakhir. Apakah Anda ingin login kembali?"
         );
@@ -76,7 +101,10 @@ function About() {
           navigate("/login");
         }
       } else {
-        setSubmitStatus("error");
+        setSubmitStatus({
+          type: "error",
+          message: "Maaf, terjadi kesalahan. Silakan coba lagi.",
+        });
         setTimeout(() => setSubmitStatus(null), 3000);
       }
     }
@@ -101,6 +129,7 @@ function About() {
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
+              className="rounded-lg"
             ></iframe>
           </div>
 
@@ -128,7 +157,6 @@ function About() {
               </div>
             </div>
 
-            {/* Suggestion Form Section */}
             <div className="suggestion-form bg-white p-6 rounded-lg shadow-sm">
               <h2 className="text-2xl font-semibold mb-4">
                 Berikan Saran Anda
@@ -140,15 +168,15 @@ function About() {
                 </div>
               )}
 
-              {submitStatus === "success" && (
-                <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-                  Terima kasih! Saran Anda telah berhasil dikirim.
-                </div>
-              )}
-
-              {submitStatus === "error" && (
-                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                  Maaf, terjadi kesalahan. Silakan coba lagi.
+              {submitStatus && (
+                <div
+                  className={`mb-4 p-3 rounded ${
+                    submitStatus.type === "success"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {submitStatus.message}
                 </div>
               )}
 
