@@ -207,6 +207,9 @@ function OrderFormCart() {
               placeholder="Enter your phone number"
               required
             />
+            <p className="text-sm text-gray-600 mt-1">
+              Nomor HP harus diawali dengan 62 (kode negara Indonesia).
+            </p>
           </div>
 
           <div className="mb-6">

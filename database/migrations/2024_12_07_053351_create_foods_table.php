@@ -15,11 +15,11 @@ class CreateFoodsTable extends Migration
     {
         Schema::create('foods', function (Blueprint $table) {
             $table->id();
-            $table->string('nama'); // Nama makanan
-            $table->text('deskripsi'); // Deskripsi makanan
-            $table->integer('harga'); // Harga makanan
-            $table->string('gambar')->nullable(); // Nama file gambar
-            $table->unsignedBigInteger('category_id'); // Tipe data harus sesuai
+            $table->string('nama'); 
+            $table->text('deskripsi');
+            $table->integer('harga'); 
+            $table->string('gambar')->nullable(); 
+            $table->unsignedBigInteger('category_id');
             $table->timestamps();
         
             // Foreign key ke tabel categories

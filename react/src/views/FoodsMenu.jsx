@@ -4,11 +4,13 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import axiosClient from "../axiosClient";
 import { useNavigate } from "react-router-dom";
+import "../styles/animations.css";
 
 function FoodsMenu() {
   const [cartCount, setCartCount] = useState(0);
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const formatCurrency = (amount) => {
@@ -24,29 +26,42 @@ function FoodsMenu() {
       const token = localStorage.getItem("access_token");
       if (token) {
         const cartResponse = await axiosClient.get("/cart");
-        const cartData = cartResponse.data.data;
-        const totalCount = cartData.reduce(
-          (total, item) => total + item.jumlah,
-          0
-        );
-        setCartCount(totalCount);
+        if (cartResponse.data && cartResponse.data.data) {
+          const cartData = cartResponse.data.data;
+          const totalCount = cartData.reduce(
+            (total, item) => total + item.jumlah,
+            0
+          );
+          setCartCount(totalCount);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch cart count:", error);
+      // Don't show error to user as this is not critical
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         const foodsResponse = await axiosClient.get("/foods");
-        setFoods(foodsResponse.data.data);
-        await fetchCartCount();
-        // eslint-disable-next-line no-unused-vars
+
+        if (foodsResponse.data && foodsResponse.data.data) {
+          setFoods(foodsResponse.data.data);
+          await fetchCartCount();
+        } else {
+          throw new Error("Invalid data format received from server");
+        }
       } catch (error) {
+        console.error("Error fetching foods:", error);
+        setError(error.response?.data?.message || "Gagal memuat data menu.");
+
         Swal.fire({
           title: "Error",
-          text: "Gagal memuat data.",
+          text: error.response?.data?.message || "Gagal memuat data menu.",
           icon: "error",
           confirmButtonText: "OK",
         });
@@ -62,7 +77,9 @@ function FoodsMenu() {
     navigate(`/foods/${foodId}`);
   };
 
-  const handleOrderNow = async (food) => {
+  const handleOrderNow = async (food, e) => {
+    e.stopPropagation(); // Prevent event bubbling
+
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
@@ -86,17 +103,19 @@ function FoodsMenu() {
         },
       });
     } catch (error) {
+      console.error("Order failed:", error);
       Swal.fire({
         title: "Error",
         text: "Gagal memproses pesanan.",
         icon: "error",
         confirmButtonText: "OK",
       });
-      console.error("Order failed:", error);
     }
   };
 
-  const handleCartClick = async (food) => {
+  const handleCartClick = async (food, e) => {
+    e.stopPropagation(); // Prevent event bubbling
+
     const token = localStorage.getItem("access_token");
     if (!token) {
       Swal.fire({
@@ -105,7 +124,7 @@ function FoodsMenu() {
         icon: "warning",
         confirmButtonText: "OK",
       });
-      navigate("/foods");
+      navigate("/login");
       return;
     }
 
@@ -126,6 +145,7 @@ function FoodsMenu() {
         });
       }
     } catch (error) {
+      console.error("Cart error:", error);
       const errorMessage =
         error.response?.data?.message || "Gagal menambahkan item ke keranjang.";
 
@@ -138,58 +158,76 @@ function FoodsMenu() {
     }
   };
 
-  return (
-    <div>
-      <Navbar cartCount={cartCount} />
-      <div className="container mx-auto py-8 px-4 md:px-8">
-        <h2 className="text-center mt-5 text-3xl font-bold text-teal-700">
-          Selamat datang di Catering Warung Nasi Marsel
-        </h2>
-        <p className="text-center text-lg text-gray-600">
-          Kami menyediakan berbagai menu lezat dengan harga terjangkau. Jelajahi
-          menu kami dan temukan hidangan favorit Anda.
-        </p>
-        <p className="text-center text-md py-3 text-gray-500">
-          Berikut ini menu yang tersedia di Catering Warung Nasi Marsel:
-        </p>
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar cartCount={cartCount} />
+        <div className="container mx-auto py-12 px-4 md:px-8 flex-grow">
+          <div className="text-center text-red-600">
+            <h2 className="text-2xl font-bold mb-4">Error Loading Menu</h2>
+            <p>{error}</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
-        <h1 className="text-4xl font-extrabold text-center mb-6 text-teal-800">
-          Daftar Menu
-        </h1>
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar cartCount={cartCount} />
+      <div className="container mx-auto py-12 px-4 md:px-8 flex-grow">
+        <div className="text-center space-y-6 animate-fadeIn">
+          <h2 className="text-4xl font-bold text-teal-700 animate-slideDown">
+            Selamat datang di Catering Warung Nasi Marsel
+          </h2>
+          <p className="text-xl text-gray-600 animate-slideUp">
+            Kami menyediakan berbagai menu lezat dengan harga terjangkau.
+            Jelajahi menu kami dan temukan hidangan favorit Anda.
+          </p>
+          <h1 className="text-5xl font-extrabold text-teal-800 animate-bounce">
+            Daftar Menu
+          </h1>
+        </div>
 
         {loading ? (
-          <div className="text-center text-lg text-gray-500">Loading...</div>
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading menu...</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {foods.map((food) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">
+            {foods.map((food, index) => (
               <div
                 key={food.id}
-                className="bg-white rounded-lg overflow-hidden shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-300 cursor-pointer w-full"
+                className="bg-white rounded-xl overflow-hidden shadow-lg hover:scale-105 hover:shadow-2xl transition-all duration-500 cursor-pointer animate-fadeInUp"
+                style={{ animationDelay: `${index * 150}ms` }}
                 onClick={() => goToDetail(food.id)}
               >
-                <div className="h-56 overflow-hidden">
+                <div className="h-56 overflow-hidden relative">
                   <img
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
                     src={`${import.meta.env.VITE_API_BASE_URL}${
                       food.gambar_url
                     }`}
                     alt={food.nama}
+                    onError={(e) => {
+                      e.target.src = "/placeholder-food.jpg"; // Add a placeholder image
+                      e.target.className = "w-full h-full object-cover";
+                    }}
                   />
                 </div>
-                <div className="p-4 flex flex-col justify-between">
-                  <h3 className="text-lg font-semibold text-teal-700 text-center">
+                <div className="p-6 flex flex-col justify-between space-y-4">
+                  <h3 className="text-xl font-bold text-teal-700 text-center animate-pulse">
                     {food.nama}
                   </h3>
-                  <div className="font-bold text-lg mb-4 text-center text-teal-600">
+                  <div className="font-bold text-2xl text-center text-teal-600 animate-slideUp">
                     {formatCurrency(food.harga)}
                   </div>
-                  <div className="flex items-center justify-center space-x-3">
+                  <div className="flex items-center justify-center space-x-4">
                     <button
-                      className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-3 rounded shadow-md"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCartClick(food);
-                      }}
+                      className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transform hover:scale-105 transition-all duration-300"
+                      onClick={(e) => handleCartClick(food, e)}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -207,11 +245,8 @@ function FoodsMenu() {
                       </svg>
                     </button>
                     <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded shadow-md"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOrderNow(food);
-                      }}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition-all duration-300"
+                      onClick={(e) => handleOrderNow(food, e)}
                     >
                       Pesan Sekarang
                     </button>

@@ -42,7 +42,13 @@ export default function Dashboard() {
         setSuggestions(response.data.data);
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
-        setError("Gagal memuat saran. Silakan coba lagi nanti.");
+        if (error.code === "ECONNABORTED") {
+          setError("Request timeout. Please try again.");
+        } else if (error.response && error.response.status >= 500) {
+          setError("Server is currently unavailable. Please try again later.");
+        } else {
+          setError("Failed to load suggestions. Please check your connection.");
+        }
       } finally {
         setLoading(false);
       }
@@ -53,52 +59,56 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Navbar cartCount={cartCount} />
       <div
-        className="hero-section bg-cover bg-center h-64 flex items-center justify-center text-white"
+        className="hero-section bg-cover bg-center h-96 flex items-center justify-center text-white relative overflow-hidden"
         style={{
           backgroundImage:
             "url('https://source.unsplash.com/1600x900/?restaurant,food')",
         }}
       >
-        <h1 className="text-4xl font-bold drop-shadow-md">
-          Selamat Datang di Warung Nasi Marsel!
-        </h1>
+        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div className="relative z-10 text-center">
+          <h1 className="text-5xl font-bold mb-4">Selamat Datang di</h1>
+          <div className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600">
+            Warung Nasi Marsel!
+          </div>
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 py-10">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-2">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">
             Rasakan Cita Rasa Terbaik
           </h2>
-          <p className="text-gray-600">
+          <p className="text-xl text-gray-600">
             Pilihan masakan rumahan yang lezat dan penuh kenangan.
           </p>
         </div>
 
         <div className="text-center">
           <button
-            className="bg-orange-500 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-orange-600 transition-all shadow-lg"
+            className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-8 py-4 rounded-full text-xl font-bold hover:from-orange-600 hover:to-red-700 transition-all shadow-lg transform hover:scale-105 hover:-translate-y-1"
             onClick={() => navigate("/foods")}
           >
             🍛 Pesan Sekarang!
           </button>
         </div>
 
-        <div className="mt-16">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">
+        <div className="mt-20">
+          <h2 className="text-3xl font-bold text-gray-800 mb-10 text-center">
             Saran dari Pelanggan
           </h2>
 
           {loading && (
             <div className="text-center py-4">
-              <p className="text-gray-600">Memuat saran...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-100 text-red-700 p-4 rounded mb-4 text-center">
+            <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4 text-center">
               {error}
             </div>
           )}
@@ -110,21 +120,23 @@ export default function Dashboard() {
           )}
 
           {!loading && !error && suggestions.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {suggestions.map((suggestion) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {suggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.id}
-                  className="bg-white border p-6 rounded-lg shadow-lg transform hover:scale-105 transition-transform"
+                  className="bg-white rounded-xl shadow-xl p-6 transform hover:scale-105 transition-all duration-300"
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <div className="text-sm text-gray-600 font-medium">
+                    <div className="text-lg text-gray-800 font-semibold">
                       {suggestion.user?.name || "Anonymous"}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-sm text-gray-500">
                       {new Date(suggestion.created_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <p className="text-gray-700">{suggestion.content}</p>
+                  <p className="text-gray-600 leading-relaxed">
+                    {suggestion.content}
+                  </p>
                 </div>
               ))}
             </div>

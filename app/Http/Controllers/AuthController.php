@@ -257,4 +257,22 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all users (accessible by authenticated users).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllUsers()
+    {
+        // Fetch all users
+        $users = User::all();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Data semua user berhasil diambil.',
+            'data' => $users
+        ], 200);
+    }
+
 }

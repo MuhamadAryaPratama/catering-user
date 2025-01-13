@@ -60,8 +60,7 @@ Apakah ada penyesuaian tertentu yang Anda inginkan?`
       {/* Copyright Section */}
       <div className="text-center text-sm pt-8">
         <span className="text-gray-600">
-          © Copyright 2024. All rights reserved. Designed By Muhamad Arya
-          Pratama
+          © Copyright 2024. All rights reserved. Designed By Warung Nasi Marsel
         </span>
       </div>
     </footer>

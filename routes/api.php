@@ -1,72 +1,169 @@
 <?php
 
-use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\FoodController;
-use App\Http\Controllers\ShoppingCartController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\SuggestionController;
-use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\{
+    AuthController,
+    FoodController,
+    OrderController,
+    PaymentController,
+    CategoryController,
+    StockController,
+    SuggestionController,
+    ShoppingCartController
+};
+use App\Http\Controllers\Admin\{
+    AuthController as AdminAuthController,
+    OrderController as AdminOrderController,
+    PaymentController as AdminPaymentController
+};
 
-// Public Routes (tanpa autentikasi)
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
+// Food & Category Routes
 Route::get('/foods', [FoodController::class, 'index']);
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{id}/foods', [CategoryController::class, 'getFoodsByCategory']);
 Route::get('/foods/{id}', [FoodController::class, 'show']);
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{id}', [CategoryController::class, 'show']);
+Route::get('/categories/{id}/foods', [CategoryController::class, 'getFoodsByCategory']);
 
-// Suggestion Routes (Public & Protected)
-Route::controller(SuggestionController::class)->group(function () {
-    // Public routes untuk melihat saran
-    Route::get('/suggestions', 'index');
-    Route::get('/suggestions/{id}', 'show');
-    
-    // Protected routes untuk membuat dan menghapus saran
-    Route::middleware('auth:api')->group(function () {
-        Route::post('/suggestions', 'store');
-        Route::delete('/suggestions/{id}', 'destroy');
-    });
-});
+// Public Suggestion Routes
+Route::get('/suggestions', [SuggestionController::class, 'index']);
+Route::get('/suggestions/{id}', [SuggestionController::class, 'show']);
 
-// Auth Routes
-Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
+/*
+|--------------------------------------------------------------------------
+| Authentication Routes
+|--------------------------------------------------------------------------
+*/
+
+// User Authentication
+Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
-    Route::put('update-profile', [AuthController::class, 'updateProfile'])->middleware('auth:api');
-    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
-    Route::post('refresh', [AuthController::class, 'refresh'])->middleware('auth:api');
-    Route::post('me', [AuthController::class, 'me'])->middleware('auth:api');
+
+    Route::middleware('auth:api')->group(function () {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::post('me', [AuthController::class, 'me']);
+        Route::put('update-profile', [AuthController::class, 'updateProfile']);
+    });
 });
 
-// Protected Routes (memerlukan autentikasi)
-Route::group(['middleware' => 'auth:api'], function () {
-    // Food Routes
-    Route::post('/foods', [FoodController::class, 'store']);
-    Route::put('/foods/{id}', [FoodController::class, 'update']);
-    Route::delete('/foods/{id}', [FoodController::class, 'destroy']);
+// Admin Authentication
+Route::prefix('admin/auth')->group(function () {
+    Route::post('register', [AdminAuthController::class, 'register']);
+    Route::post('login', [AdminAuthController::class, 'login']);
+    Route::post('forgot-password', [AdminAuthController::class, 'forgotPassword']);
+    Route::post('reset-password', [AdminAuthController::class, 'resetPassword']);
 
-    // Category Routes
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+    Route::middleware('auth:admin-api')->group(function () {
+        Route::post('logout', [AdminAuthController::class, 'logout']);
+        Route::post('refresh', [AdminAuthController::class, 'refresh']);
+        Route::post('me', [AdminAuthController::class, 'me']);
+    });
+});
 
-    // Shopping Cart Routes
-    Route::get('/cart', [ShoppingCartController::class, 'index']);
-    Route::post('/cart', [ShoppingCartController::class, 'store']);
-    Route::put('/cart/{id}', [ShoppingCartController::class, 'update']);
-    Route::delete('/cart/{id}', [ShoppingCartController::class, 'destroy']);
+/*
+|--------------------------------------------------------------------------
+| Protected User Routes
+|--------------------------------------------------------------------------
+*/
 
-    // Order Routes
-    Route::get('/orders', [OrderController::class, 'index']);
-    Route::post('/orders/direct', [OrderController::class, 'storeDirect']);
-    Route::post('/orders/cart', [OrderController::class, 'storeFromCart']);
-    Route::get('/orders/{id}', [OrderController::class, 'show']);
-    Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+Route::middleware('auth:api')->group(function () {
+    // Shopping Cart
+    Route::prefix('cart')->controller(ShoppingCartController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
 
-    // Payment Routes
-    Route::post('/payments/{orderId}', [PaymentController::class, 'createPayment']);
-    Route::post('/payments/callback', [PaymentController::class, 'callback'])->name('payments.callback');
-    Route::get('/payments/success', [PaymentController::class, 'return'])->name('payments.return');
+    // Orders
+    Route::prefix('orders')->controller(OrderController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
+        Route::post('/direct', 'storeDirect');
+        Route::post('/cart', 'storeFromCart');
+        Route::put('/{id}/status', 'updateStatus');
+    });
+
+    // Payments
+    Route::prefix('payments')->controller(PaymentController::class)->group(function () {
+        Route::post('/{orderId}', 'createPayment');
+        Route::post('/callback', 'callback')->name('payments.callback');
+        Route::get('/success', 'return')->name('payments.return');
+    });
+
+    // Protected Suggestion Routes
+    Route::prefix('suggestions')->controller(SuggestionController::class)->group(function () {
+        Route::post('/', 'store');
+        
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')->middleware('auth:admin-api')->group(function () {
+    // User Management
+    Route::get('/users', [AdminAuthController::class, 'getAllUsers']);
+
+    // Orders Management
+    Route::prefix('orders')->controller(AdminOrderController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
+        Route::put('/{id}/status', 'updateStatus');
+    });
+
+    // Payments Management
+    Route::prefix('payments')->controller(AdminPaymentController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
+        Route::put('/{id}/status', 'updateStatus');
+    });
+
+    // Stock Management
+    Route::prefix('stocks')->controller(StockController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
+
+    // Suggestions Management
+    Route::prefix('suggestions')->controller(SuggestionController::class)->group(function () {
+        Route::delete('/{id}', 'destroy');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Food Management Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('admin-only')->group(function () {
+    // Food Management
+    Route::prefix('foods')->controller(FoodController::class)->group(function () {
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
+
+    // Category Management
+    Route::prefix('categories')->controller(CategoryController::class)->group(function () {
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
 });

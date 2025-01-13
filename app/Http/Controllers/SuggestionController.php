@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Suggestion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class SuggestionController extends Controller
@@ -15,8 +16,9 @@ class SuggestionController extends Controller
      */
     public function index()
     {
-        // Mengambil semua saran dengan relasi user untuk mendapatkan informasi pengguna
-        $suggestions = Suggestion::with('user:id,name')->get();
+        $suggestions = Suggestion::with('user:id,name')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json([
             'status' => 'success',
@@ -33,17 +35,26 @@ class SuggestionController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
             'content' => 'required|string|max:1000',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
         }
 
-        $suggestion = Suggestion::create($request->all());
+        $suggestion = Suggestion::create([
+            'user_id' => Auth::id(),
+            'content' => $request->content,
+        ]);
 
-        return response()->json(['status' => 'success', 'message' => 'Suggestion submitted successfully', 'data' => $suggestion], 201);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Suggestion submitted successfully',
+            'data' => $suggestion,
+        ], 201);
     }
 
     /**
@@ -54,17 +65,23 @@ class SuggestionController extends Controller
      */
     public function show($id)
     {
-        $suggestion = Suggestion::find($id);
+        $suggestion = Suggestion::with('user:id,name')->find($id);
 
         if (!$suggestion) {
-            return response()->json(['status' => 'error', 'message' => 'Suggestion not found'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Suggestion not found',
+            ], 404);
         }
 
-        return response()->json(['status' => 'success', 'data' => $suggestion], 200);
+        return response()->json([
+            'status' => 'success',
+            'data' => $suggestion,
+        ], 200);
     }
 
     /**
-     * Remove the specified suggestion from storage.
+     * Remove the specified suggestion.
      *
      * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
@@ -74,11 +91,31 @@ class SuggestionController extends Controller
         $suggestion = Suggestion::find($id);
 
         if (!$suggestion) {
-            return response()->json(['status' => 'error', 'message' => 'Suggestion not found'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Suggestion not found',
+            ], 404);
         }
 
-        $suggestion->delete();
+        // Hanya admin yang bisa menghapus
+        if (!Auth::guard('admin-api')->check()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized to delete this suggestion. Only admins are allowed.',
+            ], 403);
+        }
 
-        return response()->json(['status' => 'success', 'message' => 'Suggestion deleted successfully'], 200);
+        try {
+            $suggestion->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Suggestion deleted successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error deleting suggestion: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

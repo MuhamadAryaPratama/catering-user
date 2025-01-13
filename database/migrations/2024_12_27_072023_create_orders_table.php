@@ -15,6 +15,7 @@ class CreateOrdersTable extends Migration
             $table->text('address');
             $table->string('phone', 15);
             $table->string('food_name');
+            $table->integer('quantity');
             $table->integer('total_amount');
             $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
             $table->timestamps();

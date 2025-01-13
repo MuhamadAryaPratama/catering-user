@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import axiosClient from "../axiosClient";
+import "../styles/animations.css";
 
 function CategoryMenu() {
   const [categories, setCategories] = useState([]);
@@ -13,7 +14,6 @@ function CategoryMenu() {
     const fetchCategories = async () => {
       try {
         const response = await axiosClient.get("/categories");
-        // console.log("Categories response:", response.data);
         setCategories(response.data.data);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
@@ -48,26 +48,26 @@ function CategoryMenu() {
     <div className="min-h-screen flex flex-col">
       <Navbar cartCount={cartCount} />
 
-      {/* Hero Section */}
-      <div className="bg-orange-50 py-12 px-4">
+      {/* Hero Section with Animation */}
+      <div className="bg-gradient-to-r from-orange-50 to-orange-100 py-16 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-4xl font-bold text-orange-800 mb-4">
+          <h1 className="text-5xl font-bold text-orange-800 mb-6 animate-slideDown">
             Menu Pilihan Warung Nasi Marsel
           </h1>
-          <p className="text-lg text-gray-700 mb-6">
+          <p className="text-xl text-gray-700 mb-8 animate-fadeIn">
             Nikmati Berbagai Pilihan Menu Istimewa Untuk Setiap Momen Spesial
             Anda
           </p>
         </div>
       </div>
 
-      {/* Categories Section */}
-      <div className="container mx-auto py-12 px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-4">
+      {/* Categories Section with Animation */}
+      <div className="container mx-auto py-16 px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-gray-800 mb-6 animate-bounce">
             Pilihan Kategori Menu
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto animate-fadeIn">
             Temukan berbagai pilihan menu lezat untuk acara spesial Anda. Dari
             paket prasmanan hingga nasi kotak, kami siap melayani dengan cita
             rasa yang autentik.
@@ -75,32 +75,33 @@ function CategoryMenu() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <div
               key={category.id}
               onClick={() => handleCategoryClick(category.id)}
-              className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:-translate-y-2"
+              className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden cursor-pointer transform hover:-translate-y-2 animate-fadeInUp"
+              style={{ animationDelay: `${index * 200}ms` }}
             >
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-48 overflow-hidden group">
                 <img
                   src={`${import.meta.env.VITE_API_BASE_URL}${
                     category.image_url
                   }`}
                   alt={category.name}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   onError={(e) => {
-                    console.log(`Image error for ${category.name}:`, e);
                     e.target.onerror = null;
                     e.target.src = "/placeholder-image.jpg";
                   }}
                 />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300" />
               </div>
 
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                <h3 className="text-2xl font-bold text-gray-800 mb-3 animate-pulse">
                   {category.name}
                 </h3>
-                <button className="mt-4 bg-orange-500 text-white px-6 py-2 rounded-full hover:bg-orange-600 transition-colors duration-300 w-full">
+                <button className="mt-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-8 py-3 rounded-full hover:from-orange-600 hover:to-orange-700 transition-all duration-300 w-full transform hover:scale-105 font-semibold">
                   Lihat Menu
                 </button>
               </div>
@@ -108,6 +109,7 @@ function CategoryMenu() {
           ))}
         </div>
       </div>
+
       <Footer />
     </div>
   );

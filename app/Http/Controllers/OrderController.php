@@ -23,7 +23,6 @@ class OrderController extends Controller
         ]);
 
         try {
-            // Pastikan user sudah login
             if (!Auth::check()) {
                 return response()->json([
                     'status' => 'error',
@@ -43,6 +42,7 @@ class OrderController extends Controller
                 'address' => $validated['address'],
                 'phone' => $validated['phone'],
                 'food_name' => $food->nama,
+                'quantity' => $quantity,
                 'total_amount' => $subtotal,
                 'status' => 'pending'
             ]);
@@ -75,7 +75,6 @@ class OrderController extends Controller
         ]);
 
         try {
-            // Pastikan user sudah login
             if (!Auth::check()) {
                 return response()->json([
                     'status' => 'error',
@@ -98,12 +97,14 @@ class OrderController extends Controller
 
             $totalAmount = 0;
             $foodNames = [];
+            $totalQuantity = 0;
 
             foreach ($cartItems as $item) {
                 $food = Food::findOrFail($item->food_id);
                 $subtotal = $item->jumlah * $food->harga;
                 $totalAmount += $subtotal;
-                $foodNames[] = $food->nama;
+                $foodNames[] = "{$food->nama} (x{$item->jumlah})"; // Include quantity in food name
+                $totalQuantity += $item->jumlah;
             }
 
             $order = Order::create([
@@ -112,9 +113,13 @@ class OrderController extends Controller
                 'address' => $validated['address'],
                 'phone' => $validated['phone'],
                 'food_name' => implode(', ', $foodNames),
+                'quantity' => $totalQuantity, // Add total quantity from cart
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
             ]);
+
+            // Clear the cart after successful order
+            ShoppingCart::where('user_id', Auth::id())->delete();
 
             DB::commit();
 

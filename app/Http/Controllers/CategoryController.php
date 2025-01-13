@@ -18,6 +18,19 @@ class CategoryController extends Controller
         return response()->json(['status' => 'success', 'data' => $categories], 200);
     }
 
+    public function show($id)
+    {
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json(['status' => 'error', 'message' => 'Category not found'], 404);
+        }
+
+        $category->image_url = $category->image ? Storage::disk('public')->url('category/' . $category->image) : null;
+
+        return response()->json(['status' => 'success', 'data' => $category], 200);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -64,7 +77,6 @@ class CategoryController extends Controller
 
         try {
             if ($request->hasFile('image')) {
-                // Delete old image
                 if ($category->image && Storage::disk('public')->exists('category/' . $category->image)) {
                     Storage::disk('public')->delete('category/' . $category->image);
                 }
@@ -74,7 +86,6 @@ class CategoryController extends Controller
             }
 
             $category->update($validated);
-
             $category->image_url = $category->image ? Storage::disk('public')->url('category/' . $category->image) : null;
 
             return response()->json(['status' => 'success', 'data' => $category], 200);
@@ -96,7 +107,6 @@ class CategoryController extends Controller
         }
 
         try {
-            // Delete image file if exists
             if ($category->image && Storage::disk('public')->exists('category/' . $category->image)) {
                 Storage::disk('public')->delete('category/' . $category->image);
             }
@@ -121,7 +131,6 @@ class CategoryController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Category not found'], 404);
         }
 
-        // Map over foods to include the image URLs
         $foods = $category->foods->map(function ($food) {
             $food->gambar_url = $food->gambar ? asset('storage/foods/' . $food->gambar) : null;
             return $food;
@@ -133,5 +142,4 @@ class CategoryController extends Controller
             'foods' => $foods,
         ], 200);
     }
-
 }
